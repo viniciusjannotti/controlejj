@@ -40,7 +40,7 @@ Copie `.env.local.example` para `.env.local` e preencha. Em `ADMIN_EMAILS`, colo
 
 ### 3. Chave da IA
 
-Crie a chave em [aistudio.google.com/apikey](https://aistudio.google.com/apikey) e coloque em `GEMINI_API_KEY`. O padrão é `gemini-3.8-flash`, com cota gratuita; para trocar, use `GEMINI_MODEL`.
+Crie a chave em [aistudio.google.com/apikey](https://aistudio.google.com/apikey) e coloque em `GEMINI_API_KEY`. O padrão é `gemini-3.6-flash`, com cota gratuita; para trocar, use `GEMINI_MODEL`. No plano gratuito, o `gemini-3.8-flash` chegou a levar mais de 100 segundos por resposta.
 
 **Sobre o plano gratuito:** os termos do Gemini dizem que, sem faturamento ativo, o Google pode usar o que é enviado para melhorar os produtos, com revisão humana, e pedem para não enviar informação pessoal. Por isso o QG troca nomes por códigos e remove telefones e e-mails antes de cada envio (ver abaixo). Um nome que não está cadastrado e foi digitado num texto livre ainda pode passar. Para a IA não usar os dados, ative o faturamento no projeto da chave: com o volume de uma equipe, o custo é de centavos.
 

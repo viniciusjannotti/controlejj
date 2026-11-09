@@ -10,7 +10,8 @@ import { store } from '@/lib/server/store';
 export const maxDuration = 120;
 
 // Modelo com cota gratuita na API do Gemini. Troque por GEMINI_MODEL sem mexer no código.
-const MODELO = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+// Em 2026-11-09, no plano gratuito, o gemini-3.6-flash respondia em ~7 s e o 3.8 levava mais de 100 s.
+const MODELO = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const MAX_ETAPAS = 5; // rodadas de chamada de função numa mesma resposta
 const MAX_REENVIOS = 2;
 
