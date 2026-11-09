@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// ============================================================
+// QG Joga Junto: o navegador nunca acessa o Firestore direto.
+// Toda leitura e escrita passa pelas rotas em src/app/api, que
+// usam o Admin SDK (ignora estas regras) e conferem o login e a
+// lista da equipe no servidor. Por isso, aqui é tudo negado.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

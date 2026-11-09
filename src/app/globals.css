@@ -1,0 +1,186 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --fundo: #f3f4ef;
+  --painel: #ffffff;
+  --painel-2: #ecefe7;
+  --linha: #d9ddd2;
+  --tinta: #14201b;
+  --tinta-2: #47554e;
+  --tinta-3: #66736c;
+  --marca: #0a7450;
+  --marca-forte: #075a3e;
+  --marca-suave: #d9f0e5;
+  --sobre-marca: #ffffff;
+  --alerta: #8a5a00;
+  --alerta-suave: #fcefcf;
+  --perigo: #b42318;
+  --perigo-suave: #fde7e3;
+  --info: #1d5fa8;
+  --info-suave: #e0ecf9;
+  --lateral: #0d2a20;
+  --lateral-2: #17402f;
+  --lateral-tinta: #c6dcd1;
+  --sombra: 0 1px 2px rgb(20 32 27 / 0.06);
+  color-scheme: light;
+}
+
+.dark {
+  --fundo: #0c1411;
+  --painel: #141e1a;
+  --painel-2: #1b2722;
+  --linha: #2b3a34;
+  --tinta: #edf2ee;
+  --tinta-2: #b0beb6;
+  --tinta-3: #8d9b93;
+  --marca: #3ccb97;
+  --marca-forte: #5fdcae;
+  --marca-suave: #12382a;
+  --sobre-marca: #06221a;
+  --alerta: #f1c15c;
+  --alerta-suave: #3a2c0b;
+  --perigo: #ff9b8e;
+  --perigo-suave: #431a15;
+  --info: #8fc1f5;
+  --info-suave: #14304d;
+  --lateral: #091a14;
+  --lateral-2: #143527;
+  --sombra: none;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-fundo: var(--fundo);
+  --color-painel: var(--painel);
+  --color-painel-2: var(--painel-2);
+  --color-linha: var(--linha);
+  --color-tinta: var(--tinta);
+  --color-tinta-2: var(--tinta-2);
+  --color-tinta-3: var(--tinta-3);
+  --color-marca: var(--marca);
+  --color-marca-forte: var(--marca-forte);
+  --color-marca-suave: var(--marca-suave);
+  --color-sobre-marca: var(--sobre-marca);
+  --color-alerta: var(--alerta);
+  --color-alerta-suave: var(--alerta-suave);
+  --color-perigo: var(--perigo);
+  --color-perigo-suave: var(--perigo-suave);
+  --color-info: var(--info);
+  --color-info-suave: var(--info-suave);
+  --color-lateral: var(--lateral);
+  --color-lateral-2: var(--lateral-2);
+  --color-lateral-tinta: var(--lateral-tinta);
+  --shadow-painel: var(--sombra);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-titulo: var(--font-barlow), var(--font-inter), system-ui, sans-serif;
+}
+
+body {
+  background: var(--fundo);
+  color: var(--tinta);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Nomes e links sem espaço não podem estourar a tela no celular. */
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 2px solid var(--marca);
+  outline-offset: 2px;
+}
+
+button:not(:disabled),
+summary,
+label[for] {
+  cursor: pointer;
+}
+
+dialog::backdrop {
+  background: rgb(5 15 11 / 0.55);
+}
+
+/* Em camada, para utilitários como w-auto poderem ajustar a largura. */
+@layer components {
+  .campo {
+    width: 100%;
+    min-height: 2.5rem;
+    border: 1px solid var(--linha);
+    border-radius: 0.375rem;
+    background: var(--painel);
+    color: var(--tinta);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+
+  .campo::placeholder {
+    color: var(--tinta-3);
+  }
+
+  .campo:focus {
+    outline: 2px solid var(--marca);
+    outline-offset: -1px;
+    border-color: var(--marca);
+  }
+}
+
+/* Texto vindo da IA */
+.markdown {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+.markdown > * + * {
+  margin-top: 0.65em;
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.25rem;
+}
+.markdown ul {
+  list-style: disc;
+}
+.markdown ol {
+  list-style: decimal;
+}
+.markdown li + li {
+  margin-top: 0.25em;
+}
+.markdown strong {
+  font-weight: 650;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  font-weight: 650;
+  font-size: 1rem;
+  margin-top: 1em;
+}
+.markdown a {
+  color: var(--marca);
+  text-decoration: underline;
+}
+.markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--linha);
+  padding: 0.25rem 0.5rem;
+  text-align: left;
+}
+.markdown code {
+  background: var(--painel-2);
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+  font-size: 0.875em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,26 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# Segredos: nunca versionar
+.env
+.env.local
+.env.*.local
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+
+# Banco local do modo demonstração
+.data/
+
+# Exportações do Joga Junto podem conter dados pessoais
+*.csv
+
+.firebase/
+firebase-debug.log
+firestore-debug.log
+npm-debug.log*
+.DS_Store
