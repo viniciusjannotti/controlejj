@@ -1,6 +1,7 @@
 import { ApiError, type Content, FinishReason, GoogleGenAI, type Part } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { buscarTrechos } from '@/lib/busca';
 import { hojeISO } from '@/lib/dates';
 import { anonimizarTexto, desanonimizar } from '@/lib/pseudonimos';
 import { type DadosQG, FUNCAO_PROPOR_TAREFA, montarFoto, normalizarProposta, type Proposta, pseudonimosDe, SISTEMA } from '@/lib/server/ai-context';
@@ -34,7 +35,7 @@ export type EventoIA =
 
 async function carregarDados(): Promise<DadosQG> {
   const db = store();
-  const [equipe, tarefas, metas, roadmap, eventos, contatos, projetos, informacoes, atividade] = await Promise.all([
+  const [equipe, tarefas, metas, roadmap, eventos, contatos, projetos, informacoes, documentos, atividade] = await Promise.all([
     listarEquipe(),
     db.list('tarefas'),
     db.list('metas'),
@@ -43,9 +44,10 @@ async function carregarDados(): Promise<DadosQG> {
     db.list('contatos'),
     db.list('projetos'),
     db.list('informacoes'),
+    db.list('documentos'),
     db.recentes('atividade', 'em', 20),
   ]);
-  return { equipe, tarefas, metas, roadmap, eventos, contatos, projetos, informacoes, atividade } as unknown as DadosQG;
+  return { equipe, tarefas, metas, roadmap, eventos, contatos, projetos, informacoes, documentos, atividade } as unknown as DadosQG;
 }
 
 function mensagemDeErro(e: unknown): string {
@@ -77,7 +79,13 @@ export async function POST(req: NextRequest) {
 
     const dados = await carregarDados();
     const pseudo = pseudonimosDe(dados);
-    const foto = montarFoto(dados, hojeISO(), pseudo);
+    // Busca nos documentos pela pergunta atual e pela anterior (para perguntas de continuação, como "e o prazo?").
+    const perguntas = corpo.data.mensagens.filter((m) => m.papel === 'user').slice(-2).map((m) => m.texto).join('\n');
+    const trechos = buscarTrechos(
+      perguntas,
+      dados.documentos.map((d) => ({ id: d.id, titulo: d.titulo, texto: `${d.resumo}\n\n${d.texto ?? ''}` })),
+    );
+    const foto = montarFoto(dados, hojeISO(), pseudo, trechos);
     const ai = new GoogleGenAI({ apiKey: chave, ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}) });
 
     // O histórico chega com nomes reais (é o que a equipe vê) e é anonimizado aqui, a cada envio.

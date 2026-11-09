@@ -73,6 +73,24 @@ export function criarDadosDemo(): Banco {
       i1: com({ titulo: 'O que é o Joga Junto', conteudo: 'Projeto guarda-chuva que reúne projetos sociais de esporte em Pouso Alegre (MG).', categoria: 'contexto', fixada: true }),
       i2: com({ titulo: 'Prioridade do semestre (exemplo)', conteudo: 'Formalizar parcerias antes de buscar patrocínio grande: patrocinador pede número de projetos.', categoria: 'estrategia', fixada: true }),
     },
+    documentos: {
+      d1: com({
+        titulo: 'Edital de apoio ao esporte (exemplo fictício)',
+        categoria: 'edital',
+        resumo: 'Como os projetos pedem verba para materiais, uniformes e transporte.',
+        link: '',
+        nome_arquivo: 'edital-exemplo.pdf',
+        texto: [
+          'EDITAL DE APOIO AO ESPORTE COMUNITÁRIO (documento fictício para demonstração)',
+          '1. Quem pode participar: projetos sociais esportivos com pelo menos um ano de atividade comprovada.',
+          '2. Valor: cada projeto pode pedir até R$ 20.000,00 para materiais esportivos, uniformes e transporte de alunos.',
+          '3. Documentos exigidos: estatuto ou ata de fundação, comprovante de CNPJ, lista de alunos atendidos (sem dados pessoais) e plano de trabalho.',
+          '4. Passo a passo da inscrição: (a) baixar o formulário no site da secretaria; (b) preencher o plano de trabalho com metas e orçamento; (c) reunir os documentos; (d) protocolar tudo na secretaria.',
+          `5. Prazo: as propostas devem ser protocoladas até ${d(18)}.`,
+          '6. Prestação de contas: notas fiscais de todas as compras e relatório final com fotos das atividades.',
+        ].join('\n\n'),
+      }),
+    },
     atividade: {},
   };
 }

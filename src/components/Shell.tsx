@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, CalendarDays, CheckSquare, ContactRound, FolderKanban, LayoutDashboard, LogOut, Map, Menu, Moon, Sparkles, Sun, Target, Upload, Users, X } from 'lucide-react';
+import { BookOpen, CalendarDays, CheckSquare, ContactRound, FileText, FolderKanban, LayoutDashboard, LogOut, Map, Menu, Moon, Sparkles, Sun, Target, Upload, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
@@ -30,6 +30,7 @@ const GRUPOS = [
       { href: '/contatos', rotulo: 'Contatos', icone: ContactRound },
       { href: '/projetos', rotulo: 'Projetos', icone: FolderKanban },
       { href: '/informacoes', rotulo: 'Informações', icone: BookOpen },
+      { href: '/documentos', rotulo: 'Documentos', icone: FileText },
     ],
   },
   {

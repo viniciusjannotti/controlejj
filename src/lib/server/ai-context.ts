@@ -5,9 +5,10 @@
 // ============================================================
 
 import { z } from 'zod';
+import type { Trecho } from '@/lib/busca';
 import { diasEntre } from '@/lib/dates';
 import { anonimizarTexto, criarPseudonimos, type Pessoa, type Pseudonimos } from '@/lib/pseudonimos';
-import type { Atividade, Contato, Evento, Informacao, Membro, Meta, Projeto, RoadmapItem, Tarefa } from '@/lib/schema';
+import type { Atividade, Contato, Documento, Evento, Informacao, Membro, Meta, Projeto, RoadmapItem, Tarefa } from '@/lib/schema';
 
 export interface DadosQG {
   equipe: Membro[];
@@ -18,6 +19,7 @@ export interface DadosQG {
   contatos: Contato[];
   projetos: Projeto[];
   informacoes: Informacao[];
+  documentos: Documento[];
   atividade: Atividade[];
 }
 
@@ -40,7 +42,8 @@ export function pseudonimosDe(d: Pick<DadosQG, 'equipe' | 'contatos' | 'projetos
   return criarPseudonimos(pessoas);
 }
 
-export function montarFoto(d: DadosQG, hoje: string, p: Pseudonimos): string {
+/** `trechos` são os pedaços de documentos que a busca achou para a pergunta atual (ver src/lib/busca.ts). */
+export function montarFoto(d: DadosQG, hoje: string, p: Pseudonimos, trechos: Trecho[] = []): string {
   const t = (s: string | null | undefined) => (s ? anonimizarTexto(s, p) : s);
   const cod = (chave: string | null | undefined) => (chave ? (p.codigoDe.get(chave) ?? null) : null);
   const codResponsavelProjeto = (nome: string) => {
@@ -115,6 +118,9 @@ export function montarFoto(d: DadosQG, hoje: string, p: Pseudonimos): string {
       inscricoes: { total: x.inscricoes_total, novas: x.inscricoes_novas, contatadas: x.inscricoes_contatadas, matriculadas: x.inscricoes_matriculadas },
     })),
     informacoes: d.informacoes.map((i) => ({ titulo: t(i.titulo), categoria: i.categoria, conteudo: t(i.conteudo) })),
+    // Todos os documentos aparecem pelo título; o conteúdo vai só nos trechos relevantes.
+    documentos: d.documentos.map((x) => ({ titulo: t(x.titulo), categoria: x.categoria, resumo: t(x.resumo), link: x.link || null })),
+    trechos_de_documentos: trechos.map((x) => ({ documento: t(x.titulo), trecho: t(x.texto) })),
     ultimas_movimentacoes: d.atividade.map((a) => ({ acao: a.acao, colecao: a.colecao, titulo: t(a.titulo), por: codMembroPorNome(a.ator), em: a.em })),
   };
 
@@ -128,6 +134,8 @@ Seu trabalho é ajudar a equipe a decidir os próximos movimentos: o que prioriz
 Baseie-se na foto de dados enviada junto com estas instruções. Cite tarefas, projetos e prazos pelo nome e explique o raciocínio em poucas frases, para que a equipe possa discordar com fundamento. Quando faltar informação para uma recomendação, diga qual é, em vez de supor. Nunca invente pessoas, números ou prazos.
 
 Por privacidade, as pessoas aparecem como códigos: E1, E2... são da equipe; C1, C2... são contatos; R1, R2... são responsáveis por projetos. Sempre que mencionar uma pessoa, escreva o código entre colchetes, por exemplo [C3] ou [E1]; o sistema mostra o nome verdadeiro à equipe. Nunca tente adivinhar nomes. Telefones e e-mails não estão disponíveis; se alguém pedir, diga que estão na tela Contatos.
+
+A foto traz a lista de documentos da equipe (editais, passo a passos, formulários, leis) e, em trechos_de_documentos, os pedaços desses documentos que parecem responder à pergunta atual. Quando usar um trecho, diga de qual documento ele veio, pelo título, para a equipe poder conferir na tela Documentos. Se a pergunta for sobre um documento listado mas os trechos não trouxerem a resposta, diga que não encontrou essa parte e sugira abrir o documento, em vez de supor o conteúdo.
 
 Quando sua recomendação for uma ação concreta, chame a função propor_tarefa para cada ação, depois de explicar o motivo. Ela só mostra uma sugestão: nada é criado até uma pessoa da equipe aprovar. Proponha poucas tarefas, as que realmente mudam o resultado, e só quando o pedido envolver decidir ou agir; perguntas informativas pedem apenas resposta.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { desanonimizar } from '@/lib/pseudonimos';
-import type { Atividade, Contato, Informacao, Projeto, Tarefa } from '@/lib/schema';
+import type { Atividade, Contato, Documento, Informacao, Projeto, Tarefa } from '@/lib/schema';
 import { type DadosQG, montarFoto, normalizarProposta, pseudonimosDe } from './ai-context';
 
 const base = { criado_em: '2027-01-01', criado_por: 'a@b.c', atualizado_em: '2027-01-01' };
@@ -16,6 +16,7 @@ const dados = (o: Partial<DadosQG> = {}): DadosQG => ({
   tarefas: [tarefa({ id: 'x', titulo: 'Ligar para Pessoa Teste', responsavel: 'a@b.c', contato_id: 'c1' })],
   metas: [], roadmap: [], eventos: [], contatos: [contato], projetos: [projeto],
   informacoes: [{ ...base, id: 'i', titulo: 'Reunião', conteudo: 'Ana Equipe ficou de falar com Fulano Responsável. Email fulano@x.com', categoria: 'reuniao', fixada: false } as Informacao],
+  documentos: [{ ...base, id: 'doc1', titulo: 'Edital de apoio', categoria: 'edital', resumo: 'Verba para projetos', link: 'https://exemplo.gov.br/edital', nome_arquivo: 'edital.pdf', caracteres: 10 } as Documento],
   atividade: [{ id: 'a', acao: 'criou', colecao: 'tarefas', ref_id: 'x', titulo: 'Ligar para Pessoa Teste', ator: 'Ana Equipe', em: '2027-01-01' } as Atividade],
   ...o,
 });
@@ -36,6 +37,13 @@ describe('montarFoto', () => {
     expect(tarefas[0]).toMatchObject({ titulo: 'Ligar para [C1]', responsavel: 'E1', contato: 'C1' });
     expect(desanonimizar(tarefas[0].titulo, p.nomes)).toBe('Ligar para Pessoa Teste');
     expect(JSON.parse(foto).projetos[0].responsavel).toBe('R1');
+  });
+
+  it('lista os documentos e manda os trechos anonimizados', () => {
+    const trechos = [{ documento_id: 'doc1', titulo: 'Edital de apoio', posicao: 0, pontuacao: 1, texto: 'Dúvidas com Pessoa Teste pelo (35) 97777-6666 ou edital@prefeitura.gov.br' }];
+    const f = JSON.parse(montarFoto(d, '2027-01-10', p, trechos));
+    expect(f.documentos).toEqual([{ titulo: 'Edital de apoio', categoria: 'edital', resumo: 'Verba para projetos', link: 'https://exemplo.gov.br/edital' }]);
+    expect(f.trechos_de_documentos[0].trecho).toBe('Dúvidas com [C1] pelo [telefone removido] ou [e-mail removido]');
   });
 
   it('calcula dias de atraso só para tarefa aberta', () => {

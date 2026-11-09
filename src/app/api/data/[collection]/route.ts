@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isColecao, parseCreate, tituloDe } from '@/lib/schema';
+import { isColecao, paraLista, parseCreate, tituloDe } from '@/lib/schema';
 import { registrarAtividade } from '@/lib/server/atividade';
 import { erroInterno, exigirMembro } from '@/lib/server/auth';
 import { store } from '@/lib/server/store';
@@ -12,7 +12,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<'/api/data/[collec
     if (erro) return erro;
     const { collection } = await ctx.params;
     if (!isColecao(collection)) return naoEncontrada();
-    return NextResponse.json(await store().list(collection));
+    return NextResponse.json((await store().list(collection)).map((d) => paraLista(collection, d)));
   } catch (e) {
     return erroInterno(e);
   }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<'/api/data/[colle
     const agora = new Date().toISOString();
     const doc = await store().create(collection, { ...r.data, criado_em: agora, atualizado_em: agora, criado_por: membro.email });
     await registrarAtividade({ acao: 'criou', colecao: collection, ref_id: doc.id, titulo: tituloDe(doc), ator: membro.nome });
-    return NextResponse.json(doc, { status: 201 });
+    return NextResponse.json(paraLista(collection, doc), { status: 201 });
   } catch (e) {
     return erroInterno(e);
   }

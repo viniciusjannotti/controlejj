@@ -29,6 +29,10 @@ export const CONTATO_CATEGORIA = {
 } as const;
 export const PROJETO_SITUACAO = { a_mapear: 'A mapear', em_conversa: 'Em conversa', parceiro: 'Parceiro', inativo: 'Inativo' } as const;
 export const INFO_CATEGORIA = { estrategia: 'Estratégia', reuniao: 'Reunião', contexto: 'Contexto', ideia: 'Ideia' } as const;
+export const DOC_CATEGORIA = { edital: 'Edital', passo_a_passo: 'Passo a passo', formulario: 'Formulário', lei: 'Lei ou norma', referencia: 'Referência', outro: 'Outro' } as const;
+
+/** Limite do texto de um documento: cabe com folga no máximo de 1 MB por registro do Firestore. */
+export const MAX_TEXTO_DOCUMENTO = 350_000;
 
 const enumDe = <T extends Record<string, string>>(o: T) => z.enum(Object.keys(o) as [keyof T & string, ...(keyof T & string)[]]);
 
@@ -120,7 +124,17 @@ const informacao = z.strictObject({
   fixada: z.boolean(),
 });
 
-export const SCHEMAS = { tarefas: tarefa, metas: meta, roadmap, eventos: evento, contatos: contato, projetos: projeto, informacoes: informacao };
+const documento = z.strictObject({
+  titulo: texto(200).min(1, 'Informe o título'),
+  categoria: enumDe(DOC_CATEGORIA),
+  resumo: texto(1000),
+  // Só http(s): evita links "javascript:" quando o endereço vira um link clicável.
+  link: z.union([z.string().trim().max(1000).regex(/^https?:\/\/\S+$/i, 'O link deve começar com http:// ou https://'), z.literal('')]),
+  texto: z.string().max(MAX_TEXTO_DOCUMENTO, 'Documento grande demais: divida em partes.'),
+  nome_arquivo: texto(200),
+});
+
+export const SCHEMAS = { tarefas: tarefa, metas: meta, roadmap, eventos: evento, contatos: contato, projetos: projeto, informacoes: informacao, documentos: documento };
 export type Colecao = keyof typeof SCHEMAS;
 export const COLECOES = Object.keys(SCHEMAS) as Colecao[];
 export const isColecao = (v: string): v is Colecao => Object.prototype.hasOwnProperty.call(SCHEMAS, v);
@@ -133,6 +147,8 @@ export type Evento = z.infer<typeof evento> & Base;
 export type Contato = z.infer<typeof contato> & Base;
 export type Projeto = z.infer<typeof projeto> & Base;
 export type Informacao = z.infer<typeof informacao> & Base;
+/** Na lista, o texto vem omitido (só `caracteres`); o texto completo vem em GET /api/data/documentos/[id]. */
+export type Documento = Omit<z.infer<typeof documento>, 'texto'> & Base & { texto?: string; caracteres: number };
 
 export interface DocumentosPorColecao {
   tarefas: Tarefa;
@@ -142,6 +158,7 @@ export interface DocumentosPorColecao {
   contatos: Contato;
   projetos: Projeto;
   informacoes: Informacao;
+  documentos: Documento;
 }
 
 const CREATE_DEFAULTS: { [C in Colecao]: Record<string, unknown> } = {
@@ -156,7 +173,15 @@ const CREATE_DEFAULTS: { [C in Colecao]: Record<string, unknown> } = {
     inscricoes_total: 0, inscricoes_novas: 0, inscricoes_contatadas: 0, inscricoes_matriculadas: 0, situacao: 'a_mapear', observacoes_qg: '',
   },
   informacoes: { conteudo: '', categoria: 'contexto', fixada: false },
+  documentos: { categoria: 'outro', resumo: '', link: '', texto: '', nome_arquivo: '' },
 };
+
+/** O texto dos documentos é grande: listas e respostas de escrita levam só o tamanho. */
+export function paraLista(colecao: Colecao, doc: Record<string, unknown>): Record<string, unknown> {
+  if (colecao !== 'documentos') return doc;
+  const { texto, ...resto } = doc;
+  return { ...resto, caracteres: typeof texto === 'string' ? texto.length : 0 };
+}
 
 /** Valida uma criação: exige o que não tem valor inicial e preenche o resto. */
 export function parseCreate(colecao: Colecao, input: unknown) {

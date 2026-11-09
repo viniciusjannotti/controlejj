@@ -1,4 +1,4 @@
-import { CONTATO_CATEGORIA, EVENTO_TIPO, INFO_CATEGORIA, META_STATUS, PRIORIDADE, PROJETO_SITUACAO, ROADMAP_STATUS, TAREFA_STATUS } from '@/lib/schema';
+import { CONTATO_CATEGORIA, DOC_CATEGORIA, EVENTO_TIPO, INFO_CATEGORIA, META_STATUS, PRIORIDADE, PROJETO_SITUACAO, ROADMAP_STATUS, TAREFA_STATUS } from '@/lib/schema';
 import type { Campo } from './Formulario';
 
 export const CAMPOS_TAREFA: Campo[] = [
@@ -71,6 +71,14 @@ export const CAMPOS_PROJETO: Campo[] = [
   { nome: 'telefone_responsavel', rotulo: 'Telefone do responsável', tipo: 'telefone' },
   { nome: 'endereco', rotulo: 'Endereço', tipo: 'texto', largo: true },
   { nome: 'observacoes_qg', rotulo: 'Observações da equipe', tipo: 'area', largo: true },
+];
+
+/** Edição dos dados do documento; o texto só muda enviando o arquivo de novo. */
+export const CAMPOS_DOCUMENTO: Campo[] = [
+  { nome: 'titulo', rotulo: 'Título', tipo: 'texto', obrigatorio: true, largo: true },
+  { nome: 'categoria', rotulo: 'Tipo', tipo: 'opcoes', opcoes: DOC_CATEGORIA, padrao: 'outro' },
+  { nome: 'link', rotulo: 'Link do original (opcional)', tipo: 'texto', dica: 'Ex.: o edital no site da prefeitura ou o arquivo no Google Drive' },
+  { nome: 'resumo', rotulo: 'Para que serve', tipo: 'area', largo: true, dica: 'Uma ou duas frases. Ajuda o conselheiro a achar o documento certo.' },
 ];
 
 export const CAMPOS_INFORMACAO: Campo[] = [
