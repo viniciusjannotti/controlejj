@@ -81,7 +81,8 @@ function JanelaDocumento({
       setAvisos(r.avisos);
       setNomeArquivo(arquivo.name);
       if (!titulo) setTitulo(arquivo.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim());
-      if (!editando) {
+      if (r.planilha) setCategoria('planilha');
+      else if (!editando) {
         if (/edital/i.test(arquivo.name)) setCategoria('edital');
         else if (/formul/i.test(arquivo.name)) setCategoria('formulario');
         else if (/\b(lei|decreto|resolu|portaria)/i.test(arquivo.name)) setCategoria('lei');
@@ -140,18 +141,27 @@ function JanelaDocumento({
           <FileUp size={22} className="shrink-0 text-tinta-3" aria-hidden />
           <span className="min-w-0">
             <span className="block text-sm font-medium">
-              {lendo ? 'Lendo o arquivo...' : editando ? 'Substituir o texto pelo de um arquivo' : 'Enviar PDF, Word (.docx) ou .txt'}
+              {lendo ? 'Lendo o arquivo...' : editando ? 'Substituir o texto pelo de um arquivo' : 'Enviar PDF, Word (.docx), Excel (.xlsx), CSV ou .txt'}
             </span>
             <span className="block text-xs text-tinta-2">
               {nomeArquivo ? `Arquivo: ${nomeArquivo}. ` : ''}O texto é lido aqui no navegador; o arquivo não é enviado.
             </span>
           </span>
-          <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" className="sr-only" disabled={lendo || carregandoTexto} onChange={(e) => void escolher(e)} />
+          <input type="file" accept=".pdf,.docx,.xlsx,.csv,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/plain" className="sr-only" disabled={lendo || carregandoTexto} onChange={(e) => void escolher(e)} />
         </label>
 
         {avisos.map((a) => (
           <p key={a} role="status" className="rounded-md bg-alerta-suave px-3 py-2 text-[13px] text-alerta">{a}</p>
         ))}
+
+        {categoria === 'planilha' && (
+          <p className="rounded-md bg-info-suave px-3 py-2 text-[13px] text-info">
+            Planilhas pequenas vão inteiras para o conselheiro analisar; as grandes, só nas linhas ligadas à pergunta. Soma, média, mínimo e máximo das colunas numéricas são calculados aqui, sem erro de conta.
+            <strong className="mt-1 block font-semibold">
+              Evite planilhas com dados de alunos (nomes, telefones, idades): telefones e e-mails são removidos, mas nomes que não estão cadastrados no QG podem chegar à IA.
+            </strong>
+          </p>
+        )}
 
         <div>
           <div className="mb-1 flex items-baseline justify-between gap-2">

@@ -65,6 +65,8 @@ export interface DocumentoBusca {
   id: string;
   titulo: string;
   texto: string;
+  /** Planilhas: se forem relevantes e pequenas, vão inteiras, para a IA poder comparar todas as linhas. */
+  inteiro?: boolean;
 }
 
 export interface Trecho {
@@ -79,11 +81,15 @@ export interface OpcoesBusca {
   limiteCaracteres?: number;
   maxTrechos?: number;
   maxPorDocumento?: number;
+  /** Tamanho máximo de um documento `inteiro` para ir completo. */
+  limiteInteiro?: number;
+  /** Espaço total para documentos inteiros, além do limite dos trechos. */
+  limiteTotalInteiros?: number;
 }
 
 /** Devolve os trechos mais relevantes para a pergunta, na ordem em que aparecem em cada documento. */
 export function buscarTrechos(pergunta: string, docs: DocumentoBusca[], opcoes: OpcoesBusca = {}): Trecho[] {
-  const { limiteCaracteres = 12000, maxTrechos = 8, maxPorDocumento = 4 } = opcoes;
+  const { limiteCaracteres = 12000, maxTrechos = 8, maxPorDocumento = 4, limiteInteiro = 20000, limiteTotalInteiros = 30000 } = opcoes;
   const consulta = [...new Set(termos(pergunta))];
   if (consulta.length === 0) return [];
 
@@ -128,7 +134,20 @@ export function buscarTrechos(pergunta: string, docs: DocumentoBusca[], opcoes: 
     usados += u.texto.length;
   }
 
-  return escolhidos
+  const trechos = escolhidos
     .sort((a, b2) => a.d.titulo.localeCompare(b2.d.titulo, 'pt-BR') || a.posicao - b2.posicao)
     .map((u) => ({ documento_id: u.d.id, titulo: u.d.titulo, posicao: u.posicao, texto: u.texto, pontuacao: Math.round(u.pontuacao * 100) / 100 }));
+
+  // Planilha relevante e pequena: troca os trechos dela pelo texto completo (até o espaço reservado).
+  let reservado = 0;
+  const inteiros = new Map<string, Trecho>();
+  for (const d of docs) {
+    if (!d.inteiro || d.texto.length > limiteInteiro || reservado + d.texto.length > limiteTotalInteiros) continue;
+    const dele = trechos.filter((t) => t.documento_id === d.id);
+    if (dele.length === 0) continue;
+    inteiros.set(d.id, { documento_id: d.id, titulo: d.titulo, posicao: 0, texto: d.texto, pontuacao: Math.max(...dele.map((t) => t.pontuacao)) });
+    reservado += d.texto.length;
+  }
+  if (inteiros.size === 0) return trechos;
+  return [...trechos.filter((t) => !inteiros.has(t.documento_id)), ...inteiros.values()];
 }

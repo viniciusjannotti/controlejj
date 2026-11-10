@@ -29,7 +29,7 @@ export const CONTATO_CATEGORIA = {
 } as const;
 export const PROJETO_SITUACAO = { a_mapear: 'A mapear', em_conversa: 'Em conversa', parceiro: 'Parceiro', inativo: 'Inativo' } as const;
 export const INFO_CATEGORIA = { estrategia: 'Estratégia', reuniao: 'Reunião', contexto: 'Contexto', ideia: 'Ideia' } as const;
-export const DOC_CATEGORIA = { edital: 'Edital', passo_a_passo: 'Passo a passo', formulario: 'Formulário', lei: 'Lei ou norma', referencia: 'Referência', outro: 'Outro' } as const;
+export const DOC_CATEGORIA = { edital: 'Edital', passo_a_passo: 'Passo a passo', formulario: 'Formulário', planilha: 'Planilha', lei: 'Lei ou norma', referencia: 'Referência', outro: 'Outro' } as const;
 
 /** Limite do texto de um documento: cabe com folga no máximo de 1 MB por registro do Firestore. */
 export const MAX_TEXTO_DOCUMENTO = 350_000;

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const perguntas = corpo.data.mensagens.filter((m) => m.papel === 'user').slice(-2).map((m) => m.texto).join('\n');
     const trechos = buscarTrechos(
       perguntas,
-      dados.documentos.map((d) => ({ id: d.id, titulo: d.titulo, texto: `${d.resumo}\n\n${d.texto ?? ''}` })),
+      dados.documentos.map((d) => ({ id: d.id, titulo: d.titulo, texto: `${d.resumo}\n\n${d.texto ?? ''}`, inteiro: d.categoria === 'planilha' })),
     );
     const foto = montarFoto(dados, hojeISO(), pseudo, trechos);
     const ai = new GoogleGenAI({ apiKey: chave, ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}) });
