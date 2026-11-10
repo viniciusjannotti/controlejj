@@ -80,7 +80,8 @@ Reimportar é seguro: atualiza os dados vindos do mapa sem duplicar e sem apagar
 
 A tela **Documentos** guarda editais, passo a passos, formulários e leis para o conselheiro consultar.
 
-- Aceita PDF, Word (.docx) e texto. O texto é extraído **no navegador** e só ele é salvo: o arquivo original não é enviado. Guarde o original onde quiser e coloque o link.
+- Aceita PDF, Word (.docx), Excel (.xlsx), CSV e texto. O texto é extraído **no navegador** e só ele é salvo: o arquivo original não é enviado. Guarde o original onde quiser e coloque o link.
+- **Planilhas** (`src/lib/planilha.ts`): cada linha vira "Coluna: valor; Coluna: valor", com todas as abas. O QG calcula soma, média, mínimo e máximo de cada coluna numérica e põe no topo de cada aba, para a IA não errar conta. Planilha relevante com até ~20 mil caracteres vai inteira para o conselheiro; maior que isso, só as linhas ligadas à pergunta. O formato antigo `.xls` não é lido: salve como `.xlsx`. Evite planilhas com dados de alunos: nomes que não estão cadastrados no QG não são trocados por código.
 - PDF escaneado (só imagem) não tem texto legível: o QG avisa. Nesse caso, cole o texto na aba "Colar texto".
 - Limite de 350 mil caracteres por documento (cerca de 100 páginas). Documentos maiores: envie em partes.
 - A cada pergunta, o servidor procura os trechos mais parecidos com o que foi perguntado (`src/lib/busca.ts`) e manda só esses à IA, junto com a lista de títulos. Os trechos passam pelos mesmos pseudônimos do resto.
