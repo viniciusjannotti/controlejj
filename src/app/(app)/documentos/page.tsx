@@ -1,11 +1,9 @@
 'use client';
 
-import { ExternalLink, FileText, FileUp, Plus, Sparkles } from 'lucide-react';
+import { ExternalLink, FileText, FileUp, Pencil, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { type ChangeEvent, type FormEvent, useEffect, useMemo, useState } from 'react';
-import { CAMPOS_DOCUMENTO } from '@/components/campos';
-import { Formulario } from '@/components/Formulario';
-import { Botao, Busca, CabecalhoPagina, Carregando, cx, Erro, Modal, Selo, Seletor, Vazio } from '@/components/ui';
+import { Botao, Busca, CabecalhoPagina, Carregando, Erro, Modal, Selo, Seletor, Vazio } from '@/components/ui';
 import { api } from '@/lib/client/api';
 import { extrairTexto } from '@/lib/client/extrair';
 import { useColecao } from '@/lib/client/hooks';
@@ -20,19 +18,55 @@ const tamanho = (caracteres: number) => {
   return `${caracteres.toLocaleString('pt-BR')} caracteres · cerca de ${paginas} ${paginas === 1 ? 'página' : 'páginas'}`;
 };
 
-/** Modal de envio: extrai o texto do arquivo (ou recebe colado) e salva. */
-function NovoDocumento({ aoFechar, aoSalvar }: { aoFechar: () => void; aoSalvar: (v: Record<string, unknown>) => Promise<unknown> }) {
-  const [modo, setModo] = useState<'arquivo' | 'colar'>('arquivo');
-  const [nomeArquivo, setNomeArquivo] = useState('');
+/**
+ * Criação e edição no mesmo lugar. O texto fica sempre visível e editável:
+ * enviar um arquivo só preenche (ou substitui) o texto, que pode ser corrigido antes de salvar.
+ */
+function JanelaDocumento({
+  doc,
+  aoFechar,
+  aoSalvar,
+  aoExcluir,
+}: {
+  doc: Documento | null;
+  aoFechar: () => void;
+  aoSalvar: (v: Record<string, unknown>) => Promise<unknown>;
+  aoExcluir?: () => Promise<unknown>;
+}) {
+  const editando = Boolean(doc);
+  const [carregandoTexto, setCarregandoTexto] = useState(editando);
   const [texto, setTexto] = useState('');
+  const [nomeArquivo, setNomeArquivo] = useState(doc?.nome_arquivo ?? '');
   const [avisos, setAvisos] = useState<string[]>([]);
   const [lendo, setLendo] = useState(false);
-  const [titulo, setTitulo] = useState('');
-  const [categoria, setCategoria] = useState<Categoria>('passo_a_passo');
-  const [resumo, setResumo] = useState('');
-  const [link, setLink] = useState('');
+  const [titulo, setTitulo] = useState(doc?.titulo ?? '');
+  const [categoria, setCategoria] = useState<Categoria>(doc?.categoria ?? 'passo_a_passo');
+  const [resumo, setResumo] = useState(doc?.resumo ?? '');
+  const [link, setLink] = useState(doc?.link ?? '');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+
+  // Na edição, a lista não traz o texto: busca o documento completo.
+  useEffect(() => {
+    if (!doc) return;
+    let ativo = true;
+    api<Documento>(`/api/data/documentos/${encodeURIComponent(doc.id)}`).then(
+      (d) => {
+        if (!ativo) return;
+        setTexto(d.texto ?? '');
+        setCarregandoTexto(false);
+      },
+      (e: Error) => {
+        if (!ativo) return;
+        setErro(e.message);
+        setCarregandoTexto(false);
+      },
+    );
+    return () => {
+      ativo = false;
+    };
+  }, [doc]);
 
   async function escolher(e: ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
@@ -47,25 +81,23 @@ function NovoDocumento({ aoFechar, aoSalvar }: { aoFechar: () => void; aoSalvar:
       setAvisos(r.avisos);
       setNomeArquivo(arquivo.name);
       if (!titulo) setTitulo(arquivo.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim());
-      if (/edital/i.test(arquivo.name)) setCategoria('edital');
-      else if (/formul/i.test(arquivo.name)) setCategoria('formulario');
-      else if (/\b(lei|decreto|resolu|portaria)/i.test(arquivo.name)) setCategoria('lei');
+      if (!editando) {
+        if (/edital/i.test(arquivo.name)) setCategoria('edital');
+        else if (/formul/i.test(arquivo.name)) setCategoria('formulario');
+        else if (/\b(lei|decreto|resolu|portaria)/i.test(arquivo.name)) setCategoria('lei');
+      }
     } catch (err) {
-      setTexto('');
-      setNomeArquivo('');
       setErro(err instanceof Error ? err.message : 'Não foi possível ler o arquivo.');
     } finally {
       setLendo(false);
     }
   }
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
-    if (!texto.trim()) return setErro(modo === 'arquivo' ? 'Escolha um arquivo primeiro.' : 'Cole o texto do documento.');
+  async function executar(acao: () => Promise<unknown>) {
     setSalvando(true);
     setErro('');
     try {
-      await aoSalvar({ titulo, categoria, resumo, link: link.trim(), texto: texto.trim(), nome_arquivo: modo === 'arquivo' ? nomeArquivo : '' });
+      await acao();
       aoFechar();
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível salvar.');
@@ -73,50 +105,16 @@ function NovoDocumento({ aoFechar, aoSalvar }: { aoFechar: () => void; aoSalvar:
     }
   }
 
+  function salvar(e: FormEvent) {
+    e.preventDefault();
+    if (!texto.trim()) return setErro('O documento precisa de texto: envie um arquivo ou escreva/cole o conteúdo.');
+    void executar(() => aoSalvar({ titulo, categoria, resumo, link: link.trim(), texto: texto.trim(), nome_arquivo: nomeArquivo }));
+  }
+
   const rotulo = 'mb-1 block text-[13px] font-medium text-tinta-2';
   return (
-    <Modal titulo="Novo documento" aoFechar={aoFechar} largo>
-      <form onSubmit={(e) => void salvar(e)} className="space-y-3">
-        <div role="tablist" aria-label="Como adicionar" className="flex gap-1 rounded-md bg-painel-2 p-1">
-          {(['arquivo', 'colar'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={modo === m}
-              onClick={() => { setModo(m); setTexto(''); setNomeArquivo(''); setAvisos([]); setErro(''); }}
-              className={cx('flex-1 rounded px-3 py-1.5 text-sm font-medium', modo === m ? 'bg-painel text-tinta shadow-painel' : 'text-tinta-2 hover:text-tinta')}
-            >
-              {m === 'arquivo' ? 'Enviar arquivo' : 'Colar texto'}
-            </button>
-          ))}
-        </div>
-
-        {modo === 'arquivo' ? (
-          <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-linha p-6 text-center transition-colors hover:border-marca focus-within:border-marca">
-            <FileUp size={24} className="text-tinta-3" aria-hidden />
-            <span className="font-medium">{lendo ? 'Lendo o arquivo...' : nomeArquivo || 'Escolher PDF, Word (.docx) ou .txt'}</span>
-            <span className="text-[13px] text-tinta-2">{texto ? `${tamanho(texto.length)}. Clique para trocar.` : 'O texto é lido aqui no navegador; o arquivo não é enviado.'}</span>
-            <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" className="sr-only" disabled={lendo} onChange={(e) => void escolher(e)} />
-          </label>
-        ) : (
-          <div>
-            <label htmlFor="doc-texto" className={rotulo}>Texto do documento <span aria-hidden className="text-perigo">*</span></label>
-            <textarea id="doc-texto" className="campo" rows={8} maxLength={MAX_TEXTO_DOCUMENTO} placeholder="Cole aqui o conteúdo, por exemplo, de uma página do site do edital" value={texto} onChange={(e) => setTexto(e.target.value)} />
-          </div>
-        )}
-
-        {avisos.map((a) => (
-          <p key={a} role="status" className="rounded-md bg-alerta-suave px-3 py-2 text-[13px] text-alerta">{a}</p>
-        ))}
-
-        {modo === 'arquivo' && texto && (
-          <details className="rounded-md border border-linha">
-            <summary className="px-3 py-2 text-[13px] font-medium text-tinta-2">Conferir o texto extraído</summary>
-            <p className="max-h-40 overflow-y-auto border-t border-linha px-3 py-2 text-[13px] whitespace-pre-wrap text-tinta-2">{texto.slice(0, 2000)}{texto.length > 2000 && '…'}</p>
-          </details>
-        )}
-
+    <Modal titulo={editando ? 'Editar documento' : 'Novo documento'} aoFechar={aoFechar} largo>
+      <form onSubmit={salvar} className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label htmlFor="doc-titulo" className={rotulo}>Título <span aria-hidden className="text-perigo">*</span></label>
@@ -138,18 +136,71 @@ function NovoDocumento({ aoFechar, aoSalvar }: { aoFechar: () => void; aoSalvar:
           </div>
         </div>
 
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-linha px-4 py-3 transition-colors hover:border-marca focus-within:border-marca">
+          <FileUp size={22} className="shrink-0 text-tinta-3" aria-hidden />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">
+              {lendo ? 'Lendo o arquivo...' : editando ? 'Substituir o texto pelo de um arquivo' : 'Enviar PDF, Word (.docx) ou .txt'}
+            </span>
+            <span className="block text-xs text-tinta-2">
+              {nomeArquivo ? `Arquivo: ${nomeArquivo}. ` : ''}O texto é lido aqui no navegador; o arquivo não é enviado.
+            </span>
+          </span>
+          <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" className="sr-only" disabled={lendo || carregandoTexto} onChange={(e) => void escolher(e)} />
+        </label>
+
+        {avisos.map((a) => (
+          <p key={a} role="status" className="rounded-md bg-alerta-suave px-3 py-2 text-[13px] text-alerta">{a}</p>
+        ))}
+
+        <div>
+          <div className="mb-1 flex items-baseline justify-between gap-2">
+            <label htmlFor="doc-texto" className="text-[13px] font-medium text-tinta-2">Texto do documento <span aria-hidden className="text-perigo">*</span></label>
+            {!carregandoTexto && <span className="text-xs text-tinta-3">{tamanho(texto.length)}</span>}
+          </div>
+          {carregandoTexto ? (
+            <Carregando texto="Carregando o texto" />
+          ) : (
+            <textarea
+              id="doc-texto"
+              className="campo font-[inherit] leading-relaxed"
+              rows={12}
+              maxLength={MAX_TEXTO_DOCUMENTO}
+              placeholder="Envie um arquivo acima ou cole/escreva aqui o conteúdo, por exemplo, de uma página do site do edital"
+              value={texto}
+              onChange={(e) => setTexto(e.target.value)}
+            />
+          )}
+        </div>
+
         {erro && <Erro mensagem={erro} />}
-        <div className="flex justify-end gap-2">
-          <Botao variante="fantasma" onClick={aoFechar}>Cancelar</Botao>
-          <Botao variante="primario" type="submit" carregando={salvando} disabled={lendo}>Salvar documento</Botao>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {aoExcluir &&
+            (confirmando ? (
+              <>
+                <span className="mr-auto text-sm text-tinta-2">Excluir este documento de vez?</span>
+                <Botao variante="fantasma" onClick={() => setConfirmando(false)}>Manter</Botao>
+                <Botao variante="perigo" carregando={salvando} onClick={() => void executar(aoExcluir)}>Sim, excluir</Botao>
+              </>
+            ) : (
+              <Botao variante="perigo" className="mr-auto" onClick={() => setConfirmando(true)}>Excluir</Botao>
+            ))}
+          {!confirmando && (
+            <>
+              <Botao variante="fantasma" onClick={aoFechar}>Cancelar</Botao>
+              <Botao variante="primario" type="submit" carregando={salvando} disabled={lendo || carregandoTexto}>
+                {editando ? 'Salvar alterações' : 'Salvar documento'}
+              </Botao>
+            </>
+          )}
         </div>
       </form>
     </Modal>
   );
 }
 
-/** Mostra o texto completo, buscado só quando alguém abre. */
-function VerTexto({ doc, aoFechar }: { doc: Documento; aoFechar: () => void }) {
+/** Leitura do texto completo, buscado só quando alguém abre. */
+function VerTexto({ doc, aoFechar, aoEditar }: { doc: Documento; aoFechar: () => void; aoEditar: () => void }) {
   const [texto, setTexto] = useState<string | null>(null);
   const [erro, setErro] = useState('');
   useEffect(() => {
@@ -165,6 +216,9 @@ function VerTexto({ doc, aoFechar }: { doc: Documento; aoFechar: () => void }) {
   return (
     <Modal titulo={doc.titulo} aoFechar={aoFechar} largo>
       {erro ? <Erro mensagem={erro} /> : texto === null ? <Carregando /> : <p className="text-sm whitespace-pre-wrap">{texto}</p>}
+      <div className="mt-4 flex justify-end">
+        <Botao onClick={aoEditar}><Pencil size={14} aria-hidden /> Editar</Botao>
+      </div>
     </Modal>
   );
 }
@@ -173,8 +227,7 @@ export default function PaginaDocumentos() {
   const { itens, carregando, erro, criar, atualizar, remover, recarregar } = useColecao('documentos');
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [novo, setNovo] = useState(false);
-  const [editando, setEditando] = useState<Documento | null>(null);
+  const [janela, setJanela] = useState<{ doc: Documento | null } | null>(null);
   const [vendo, setVendo] = useState<Documento | null>(null);
 
   const visiveis = useMemo(() => {
@@ -190,7 +243,7 @@ export default function PaginaDocumentos() {
       <CabecalhoPagina
         titulo="Documentos"
         descricao="Editais, passo a passos, formulários e leis. O conselheiro de IA consulta estes textos e cita o documento de onde tirou a resposta."
-        acoes={<Botao variante="primario" onClick={() => setNovo(true)}><Plus size={16} aria-hidden /> Novo documento</Botao>}
+        acoes={<Botao variante="primario" onClick={() => setJanela({ doc: null })}><Plus size={16} aria-hidden /> Novo documento</Botao>}
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -210,7 +263,7 @@ export default function PaginaDocumentos() {
           icone={FileText}
           titulo="Nenhum documento ainda"
           descricao="Envie o PDF ou Word de um edital ou de um passo a passo. Depois, pergunte ao conselheiro, por exemplo: como um projeto consegue verba pelo edital?"
-          acao={<Botao variante="primario" onClick={() => setNovo(true)}>Enviar o primeiro documento</Botao>}
+          acao={<Botao variante="primario" onClick={() => setJanela({ doc: null })}>Enviar o primeiro documento</Botao>}
         />
       ) : visiveis.length === 0 ? (
         <Vazio icone={FileText} titulo="Nenhum documento com esse filtro" />
@@ -220,7 +273,7 @@ export default function PaginaDocumentos() {
             <li key={d.id} className="flex flex-col rounded-lg border border-linha bg-painel p-4 shadow-painel">
               <div className="flex items-start gap-2">
                 <FileText size={18} className="mt-0.5 shrink-0 text-tinta-3" aria-hidden />
-                <button type="button" onClick={() => setEditando(d)} className="min-w-0 flex-1 text-left font-medium hover:underline">{d.titulo}</button>
+                <button type="button" onClick={() => setVendo(d)} className="min-w-0 flex-1 text-left font-medium hover:underline">{d.titulo}</button>
                 <Selo className="shrink-0">{DOC_CATEGORIA[d.categoria]}</Selo>
               </div>
               {d.resumo && <p className="mt-1.5 line-clamp-2 text-[13px] text-tinta-2">{d.resumo}</p>}
@@ -229,9 +282,10 @@ export default function PaginaDocumentos() {
                 {d.nome_arquivo && ` · ${d.nome_arquivo}`} · enviado em {dataCurta(d.criado_em.slice(0, 10))}
               </p>
               <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
-                <Botao pequeno onClick={() => setVendo(d)}>Ver texto</Botao>
+                <Botao pequeno onClick={() => setJanela({ doc: d })}><Pencil size={13} aria-hidden /> Editar</Botao>
+                <Botao pequeno variante="fantasma" onClick={() => setVendo(d)}>Ver texto</Botao>
                 {d.link && /^https?:\/\//i.test(d.link) && (
-                  <a href={d.link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-linha px-2.5 text-[13px] font-medium hover:bg-painel-2">
+                  <a href={d.link} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md px-2.5 text-[13px] font-medium text-tinta-2 hover:bg-painel-2 hover:text-tinta">
                     <ExternalLink size={13} aria-hidden /> Abrir original
                   </a>
                 )}
@@ -241,16 +295,23 @@ export default function PaginaDocumentos() {
         </ul>
       )}
 
-      {novo && <NovoDocumento aoFechar={() => setNovo(false)} aoSalvar={criar} />}
-      {vendo && <VerTexto doc={vendo} aoFechar={() => setVendo(null)} />}
-      {editando && (
-        <Formulario
-          titulo="Editar documento"
-          campos={CAMPOS_DOCUMENTO}
-          inicial={editando}
-          aoFechar={() => setEditando(null)}
-          aoSalvar={(v) => atualizar(editando.id, v)}
-          aoExcluir={() => remover(editando.id)}
+      {janela && (
+        <JanelaDocumento
+          key={janela.doc?.id ?? 'novo'}
+          doc={janela.doc}
+          aoFechar={() => setJanela(null)}
+          aoSalvar={(v) => (janela.doc ? atualizar(janela.doc.id, v) : criar(v))}
+          aoExcluir={janela.doc ? () => remover(janela.doc!.id) : undefined}
+        />
+      )}
+      {vendo && (
+        <VerTexto
+          doc={vendo}
+          aoFechar={() => setVendo(null)}
+          aoEditar={() => {
+            setJanela({ doc: vendo });
+            setVendo(null);
+          }}
         />
       )}
     </>

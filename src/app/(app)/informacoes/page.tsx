@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Pin, Plus } from 'lucide-react';
+import { BookOpen, Pencil, Pin, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CAMPOS_INFORMACAO } from '@/components/campos';
 import { Formulario } from '@/components/Formulario';
@@ -47,6 +47,7 @@ export default function PaginaInformacoes() {
                   <Selo className="shrink-0">{INFO_CATEGORIA[i.categoria]}</Selo>
                 </span>
                 <span className="mt-1.5 line-clamp-4 block text-[13px] whitespace-pre-line text-tinta-2">{i.conteudo}</span>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-marca"><Pencil size={12} aria-hidden /> Editar</span>
               </button>
             </li>
           ))}

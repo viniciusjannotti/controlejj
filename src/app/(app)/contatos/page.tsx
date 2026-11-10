@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckSquare, ContactRound, Mail, MessageCircle, Phone, PhoneCall, Plus } from 'lucide-react';
+import { CheckSquare, ContactRound, Mail, MessageCircle, Pencil, Phone, PhoneCall, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CAMPOS_CONTATO, CAMPOS_TAREFA } from '@/components/campos';
 import { Formulario } from '@/components/Formulario';
@@ -84,6 +84,7 @@ export default function PaginaContatos() {
                   {c.telefone && <a href={`tel:${c.telefone.replace(/[^\d+]/g, '')}`} className={classeIcone} aria-label={`Ligar para ${c.nome}`} title="Ligar"><Phone size={16} aria-hidden /></a>}
                   {c.email && <a href={`mailto:${c.email}`} className={classeIcone} aria-label={`E-mail para ${c.nome}`} title="E-mail"><Mail size={16} aria-hidden /></a>}
                   <span className="ml-auto flex flex-wrap gap-1.5">
+                    <Botao pequeno onClick={() => setEditando(c)}><Pencil size={14} aria-hidden /> Editar</Botao>
                     <Botao
                       pequeno
                       onClick={() => {

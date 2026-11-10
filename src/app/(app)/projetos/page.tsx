@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderKanban, Plus, Upload } from 'lucide-react';
+import { FolderKanban, Pencil, Plus, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { CAMPOS_PROJETO } from '@/components/campos';
@@ -84,7 +84,10 @@ export default function PaginaProjetos() {
                       </span>
                     ))}
                   </span>
-                  {abertas > 0 && <span className="mt-2 text-xs text-tinta-2">{abertas} {abertas === 1 ? 'tarefa aberta' : 'tarefas abertas'}</span>}
+                  <span className="mt-3 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-tinta-2">{abertas > 0 && `${abertas} ${abertas === 1 ? 'tarefa aberta' : 'tarefas abertas'}`}</span>
+                    <span className="inline-flex items-center gap-1 font-medium text-marca"><Pencil size={12} aria-hidden /> Editar</span>
+                  </span>
                 </button>
               </li>
             );
